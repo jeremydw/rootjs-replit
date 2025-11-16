@@ -91,12 +91,15 @@ The project is configured for autoscale deployment on Replit:
 
 ## Recent Changes
 
-### 2025-11-16 (MCP Server)
-- Created **@blinkk/root-cms-mcp** package with complete MCP server implementation
-- Implemented SimpleCMSClient for standalone Firestore operations (bypasses RootCMSClient)
-- Added MCP resources (documents, collections, schemas), tools (CRUD operations), and prompts
-- Package built successfully and ready for integration with AI/automation tools
-- Uses minimal dependencies: @modelcontextprotocol/sdk and firebase-admin
+### 2025-11-16 (MCP Plugin)
+- Created **@blinkk/root-cms-mcp** package as a Root.js plugin (not standalone server)
+- Plugin integrates with existing CMS plugin to access Firebase/Firestore
+- Implemented SimpleCMSClient for direct Firestore operations
+- Added authenticated HTTP endpoint at `/mcp/message` for JSON-RPC 2.0 communication
+- Exposed MCP resources (documents, collections, schemas), tools (CRUD operations), and prompts
+- Security: Requires CMS authentication - only logged-in users can access endpoint
+- No separate credentials needed - uses CMS plugin's Firebase configuration
+- Package built successfully and ready for AI/automation integration
 
 ### 2024-11-16 (Initial Setup)
 - Installed pnpm 8.9.0 and all project dependencies
