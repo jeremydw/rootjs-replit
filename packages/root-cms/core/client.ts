@@ -299,18 +299,27 @@ export class RootCMSClient {
     const draftSys = draftDoc.sys || {};
     const modifiedBy = options?.modifiedBy || 'root-cms-client';
     const fields = marshalData(fieldsData || {});
+    
+    const sys: any = {
+      createdAt: draftSys.createdAt ?? Timestamp.now(),
+      createdBy: draftSys.createdBy ?? modifiedBy,
+      modifiedAt: Timestamp.now(),
+      modifiedBy,
+      locales: options?.locales ?? draftSys.locales ?? ['en'],
+    };
+    
+    if (draftSys.publishedAt) {
+      sys.publishedAt = draftSys.publishedAt;
+    }
+    if (draftSys.publishedBy) {
+      sys.publishedBy = draftSys.publishedBy;
+    }
+    
     const data = {
       id: docId,
       collection,
       slug,
-      sys: {
-        ...draftSys,
-        createdAt: draftSys.createdAt ?? Timestamp.now(),
-        createdBy: draftSys.createdBy ?? modifiedBy,
-        modifiedAt: Timestamp.now(),
-        modifiedBy,
-        locales: options?.locales ?? draftSys.locales ?? ['en'],
-      },
+      sys,
       fields,
     };
     await this.setRawDoc(collection, slug, data, {mode: 'draft'});

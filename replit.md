@@ -109,10 +109,11 @@ The project is configured for autoscale deployment on Replit:
   - Changed from `Date.now()` to `Timestamp.now()` for all sys fields
   - Ensures proper Firestore timestamp format for createdAt, modifiedAt, publishedAt
   - Fixes timestamp compatibility issues with Root CMS
-- **Fixed critical sys metadata preservation bug** in SimpleCMSClient.saveDraft
+- **Fixed critical sys metadata preservation bug** in both SimpleCMSClient.saveDraft and RootCMSClient.saveDraftData
   - Selectively preserves specific sys fields (createdAt, createdBy, publishedAt, publishedBy) instead of spreading entire object
   - Prevents Firestore "object too deep or contains cycle" errors
   - Ensures publish workflows maintain proper metadata history without circular references
+  - Fixed in both MCP plugin (SimpleCMSClient) and main CMS client (RootCMSClient)
 
 ### 2025-11-16 (MCP Plugin - Documentation)
 - Created **comprehensive documentation** for Root CMS MCP plugin
