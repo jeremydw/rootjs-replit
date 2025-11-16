@@ -50,3 +50,8 @@ externalPort = 3003
 [[ports]]
 localPort = 33635
 externalPort = 3001
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "cd examples/starter && PORT=5000 pnpm run start"]
+build = ["bash", "-c", "cd examples/starter && pnpm run build"]
