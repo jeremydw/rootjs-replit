@@ -12,6 +12,10 @@ export default defineConfig({
     locales: ['en', 'de', 'es', 'fr', 'it', 'pt'],
   },
   vite: {
+    server: {
+      host: '0.0.0.0',
+      allowedHosts: true,
+    },
     resolve: {
       alias: {
         '@': path.resolve(rootDir),
