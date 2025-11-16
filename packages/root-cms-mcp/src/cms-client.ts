@@ -1,4 +1,5 @@
 import type {Firestore} from 'firebase-admin/firestore';
+import {Timestamp} from 'firebase-admin/firestore';
 
 /**
  * Simplified CMS client for MCP server that works directly with Firestore.
@@ -74,7 +75,7 @@ export class SimpleCMSClient {
     const dbPath = `Projects/${this.projectId}/Collections/${collection}/Drafts/${encodedSlug}`;
     const docRef = this.db.doc(dbPath);
     
-    const now = Date.now();
+    const now = Timestamp.now();
     const data = {
       fields,
       sys: {
@@ -114,7 +115,7 @@ export class SimpleCMSClient {
     }
     
     const data = draftDoc.data();
-    const now = Date.now();
+    const now = Timestamp.now();
     
     await this.db.doc(publishedPath).set({
       ...data,

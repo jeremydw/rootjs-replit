@@ -102,6 +102,7 @@ export class Chat {
   history: HistoryItem[];
   model: string;
   ai: Genkit;
+  mcpTools: any[];
 
   constructor(
     chatClient: ChatClient,
@@ -128,6 +129,127 @@ export class Chat {
         }),
       ],
     });
+    this.mcpTools = this.buildMcpTools();
+  }
+
+  /** Builds MCP tools for the AI to interact with the CMS. */
+  private buildMcpTools(): any[] {
+    const cmsClient = this.cmsClient;
+
+    return [
+      {
+        name: 'get_document',
+        description: 'Get a specific CMS document by collection and slug',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            collection: {type: 'string'},
+            slug: {type: 'string'},
+            mode: {type: 'string', enum: ['draft', 'published']},
+          },
+          required: ['collection', 'slug'],
+        },
+        outputSchema: {type: 'object'},
+        async use(input: any) {
+          const {collection, slug, mode = 'draft'} = input;
+          const doc = await cmsClient.getDoc(collection, slug, {mode});
+          return doc || {error: 'Document not found'};
+        },
+      },
+      {
+        name: 'list_documents',
+        description: 'List all documents in a collection',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            collection: {type: 'string'},
+            mode: {type: 'string', enum: ['draft', 'published']},
+            limit: {type: 'number'},
+          },
+          required: ['collection'],
+        },
+        outputSchema: {type: 'object'},
+        async use(input: any) {
+          const {collection, mode = 'draft', limit = 50} = input;
+          const docs = await cmsClient.listDocs(collection, {mode, limit});
+          return docs;
+        },
+      },
+      {
+        name: 'save_draft',
+        description: 'Save or update a draft document (creates if it doesn\'t exist)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            collection: {type: 'string'},
+            slug: {type: 'string'},
+            fields: {type: 'object'},
+          },
+          required: ['collection', 'slug', 'fields'],
+        },
+        outputSchema: {type: 'object'},
+        async use(input: any) {
+          const {collection, slug, fields} = input;
+          const docId = `${collection}/${slug}`;
+          await cmsClient.saveDraftData(docId, fields, {
+            modifiedBy: 'ai-assistant',
+          });
+          const doc = await cmsClient.getDoc(collection, slug, {mode: 'draft'});
+          return doc;
+        },
+      },
+      {
+        name: 'publish_document',
+        description: 'Publish a draft document to production',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            collection: {type: 'string'},
+            slug: {type: 'string'},
+          },
+          required: ['collection', 'slug'],
+        },
+        outputSchema: {type: 'object'},
+        async use(input: any) {
+          const {collection, slug} = input;
+          const docId = `${collection}/${slug}`;
+          await cmsClient.publishDocs([docId], {
+            publishedBy: 'ai-assistant',
+          });
+          const doc = await cmsClient.getDoc(collection, slug, {mode: 'published'});
+          return doc;
+        },
+      },
+      {
+        name: 'get_schema',
+        description: 'Get the schema definition for a collection',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            collection: {type: 'string'},
+          },
+          required: ['collection'],
+        },
+        outputSchema: {type: 'object'},
+        async use(input: any) {
+          const {collection} = input;
+          // Get the first document to show an example of the structure
+          const docs = await cmsClient.listDocs(collection, {mode: 'draft', limit: 1});
+          if (docs && docs.docs && docs.docs.length > 0) {
+            const sampleDoc = docs.docs[0];
+            return {
+              collection,
+              sampleDocument: sampleDoc,
+              description: 'Schema inferred from a sample document in this collection',
+            };
+          }
+          return {
+            collection,
+            error: 'No documents found in collection to infer schema',
+          };
+        },
+      },
+    ];
   }
 
   /** Builds the messages for the AI request. */
@@ -197,6 +319,7 @@ export class Chat {
       model: chatRequest.model,
       messages: chatRequest.messages,
       prompt: Array.isArray(prompt) ? prompt.flat() : prompt,
+      tools: this.mcpTools,
     });
     this.history = res.messages;
     await this.dbDoc().update({
@@ -263,17 +386,20 @@ export class Chat {
         this.cmsPluginOptions.name || this.cmsPluginOptions.id
       }. Your job is to answer questions about the docs in the system, and if requested, help suggest changes to the JSON data in the docs. If you don't know the answer, just say that you don't know, don't try to make up an answer. Be friendly and playful with your messaging.`,
       '',
+      'You have access to the following tools to interact with the CMS:',
+      '- get_document: Retrieve a specific document by collection and slug',
+      '- list_documents: List all documents in a collection',
+      '- save_draft: Create or update a draft document',
+      '- publish_document: Publish a draft document to production',
+      '- get_schema: Get the schema definition for a collection',
+      '',
+      'Use these tools to browse and modify CMS content as needed. Always confirm with the user before publishing documents to production.',
+      '',
       'Here is the root.config.ts file for the site:',
       '```',
       serializedRootConfig,
       '```',
-      '',
-      'Here are the docs that exist in the system:',
     ];
-    const pages = await this.cmsClient.listDocs('Pages', {mode: 'draft'});
-    pages.docs.forEach((doc: any) => {
-      systemText.push(JSON.stringify(doc));
-    });
     return systemText.join('\n');
   }
 }
