@@ -137,86 +137,154 @@ export function mcpPlugin(options: MCPPluginOptions = {}): MCPPlugin {
       );
 
       // Add HTTP endpoint for MCP
+      // NOTE: This endpoint should only be accessible to authenticated users
       server.use(
         `${mcpPath}/message`,
         async (req: Request, res: Response, next: NextFunction) => {
+          // Require authentication for MCP endpoint
+          if (!req.user) {
+            res.status(401).json({
+              jsonrpc: '2.0',
+              error: {
+                code: -32001,
+                message: 'Authentication required',
+              },
+              id: null,
+            });
+            return;
+          }
+
           if (req.method !== 'POST') {
-            res.status(405).json({error: 'Method not allowed'});
+            res.status(405).json({
+              jsonrpc: '2.0',
+              error: {code: -32000, message: 'Method not allowed'},
+              id: null,
+            });
             return;
           }
 
           try {
             const {method, params, id} = req.body;
 
-            if (!method) {
+            // Validate JSON-RPC request
+            if (!method || typeof method !== 'string') {
               res.status(400).json({
                 jsonrpc: '2.0',
-                error: {code: -32600, message: 'Invalid Request'},
-                id: null,
+                error: {code: -32600, message: 'Invalid Request: missing or invalid method'},
+                id: id || null,
               });
               return;
             }
 
-            // Create a JSON-RPC request object
-            const mcpRequest = {
-              jsonrpc: '2.0' as const,
-              method,
-              params: params || {},
-              id: id || Date.now(),
-            };
-
-            // Process through MCP server's request handler
-            // Note: We manually route to the appropriate handler based on method
-            let result;
-            switch (method) {
-              case 'resources/list':
-                result = await registerResources(context!).list();
-                break;
-              case 'resources/read':
-                result = await registerResources(context!).read(params.uri);
-                break;
-              case 'tools/list':
-                result = await registerTools(context!).list();
-                break;
-              case 'tools/call':
-                result = await registerTools(context!).call(
-                  params.name,
-                  params.arguments
-                );
-                break;
-              case 'prompts/list':
-                result = await registerPrompts(context!).list();
-                break;
-              case 'prompts/get':
-                result = await registerPrompts(context!).get(
-                  params.name,
-                  params.arguments
-                );
-                break;
-              default:
-                res.status(400).json({
-                  jsonrpc: '2.0',
-                  error: {code: -32601, message: 'Method not found'},
-                  id: mcpRequest.id,
-                });
-                return;
+            // Validate params is an object
+            if (params !== undefined && typeof params !== 'object') {
+              res.status(400).json({
+                jsonrpc: '2.0',
+                error: {code: -32600, message: 'Invalid Request: params must be an object'},
+                id: id || null,
+              });
+              return;
             }
 
-            res.json({
-              jsonrpc: '2.0',
-              result,
-              id: mcpRequest.id,
-            });
+            const requestParams = params || {};
+            const requestId = id !== undefined ? id : Date.now();
+
+            // Route to the appropriate handler and validate required params
+            let result;
+            try {
+              switch (method) {
+                case 'resources/list':
+                  result = await registerResources(context!).list();
+                  break;
+
+                case 'resources/read':
+                  if (!requestParams.uri) {
+                    res.status(400).json({
+                      jsonrpc: '2.0',
+                      error: {code: -32602, message: 'Invalid params: uri is required'},
+                      id: requestId,
+                    });
+                    return;
+                  }
+                  result = await registerResources(context!).read(requestParams.uri);
+                  break;
+
+                case 'tools/list':
+                  result = await registerTools(context!).list();
+                  break;
+
+                case 'tools/call':
+                  if (!requestParams.name) {
+                    res.status(400).json({
+                      jsonrpc: '2.0',
+                      error: {code: -32602, message: 'Invalid params: name is required'},
+                      id: requestId,
+                    });
+                    return;
+                  }
+                  result = await registerTools(context!).call(
+                    requestParams.name,
+                    requestParams.arguments || {}
+                  );
+                  break;
+
+                case 'prompts/list':
+                  result = await registerPrompts(context!).list();
+                  break;
+
+                case 'prompts/get':
+                  if (!requestParams.name) {
+                    res.status(400).json({
+                      jsonrpc: '2.0',
+                      error: {code: -32602, message: 'Invalid params: name is required'},
+                      id: requestId,
+                    });
+                    return;
+                  }
+                  result = await registerPrompts(context!).get(
+                    requestParams.name,
+                    requestParams.arguments || {}
+                  );
+                  break;
+
+                default:
+                  res.status(400).json({
+                    jsonrpc: '2.0',
+                    error: {code: -32601, message: `Method not found: ${method}`},
+                    id: requestId,
+                  });
+                  return;
+              }
+
+              res.json({
+                jsonrpc: '2.0',
+                result,
+                id: requestId,
+              });
+            } catch (error: any) {
+              // Handle application-level errors
+              console.error('[MCP Plugin] Error in method handler:', error);
+              res.status(500).json({
+                jsonrpc: '2.0',
+                error: {
+                  code: -32603,
+                  message: 'Internal error',
+                  data: error.message,
+                },
+                id: requestId,
+              });
+            }
           } catch (error: any) {
+            // Handle parsing/validation errors
             console.error('[MCP Plugin] Error processing request:', error);
-            res.status(500).json({
+            res.status(400).json({
               jsonrpc: '2.0',
               error: {
-                code: -32603,
-                message: 'Internal error',
+                code: -32700,
+                message: 'Parse error',
                 data: error.message,
               },
-              id: req.body?.id || null,
+              id: null,
             });
           }
         }

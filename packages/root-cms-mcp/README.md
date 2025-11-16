@@ -1,14 +1,14 @@
 # @blinkk/root-cms-mcp
 
-MCP (Model Context Protocol) server for Root CMS, enabling AI agents and developers to interact with Root CMS programmatically.
+A Root.js plugin that adds **Model Context Protocol (MCP)** endpoints to your Root CMS, enabling AI-powered features like intelligent page builders, automated content workflows, and change management.
 
 ## Features
 
-- **Resources**: Access CMS documents, collections, and schemas
-- **Tools**: Create, update, delete, query, and publish documents
-- **Prompts**: Templates for common CMS operations
-- **Firebase Integration**: Built on Firebase Admin SDK
-- **TypeScript**: Fully typed for excellent developer experience
+- 🔌 **Plugin Architecture**: Integrates seamlessly as a Root.js plugin - no separate server needed
+- 🔐 **Secure**: Uses your existing Firebase credentials from the CMS plugin
+- 🤖 **AI-Ready**: Exposes CMS operations through the MCP protocol for AI assistants
+- 📦 **Minimal Dependencies**: Lightweight with only essential dependencies
+- 🚀 **Zero Configuration**: Works out of the box with your existing CMS setup
 
 ## Installation
 
@@ -20,190 +20,171 @@ pnpm add @blinkk/root-cms-mcp
 
 ## Usage
 
-### As a Standalone Server
-
-```bash
-# Set environment variables
-export FIREBASE_PROJECT_ID="your-firebase-project"
-export CMS_PROJECT_ID="your-cms-project-id"
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/credentials.json"
-
-# Run the server
-npx root-cms-mcp
-```
-
-### Programmatic Usage
+Add the MCP plugin to your `root.config.ts` file alongside your CMS plugin:
 
 ```typescript
-import {RootCMSMCPServer} from '@blinkk/root-cms-mcp';
+import {defineConfig} from '@blinkk/root';
+import {cmsPlugin} from '@blinkk/root-cms';
+import {mcpPlugin} from '@blinkk/root-cms-mcp';
 
-const server = new RootCMSMCPServer({
-  projectId: 'your-firebase-project',
-  cmsProjectId: 'your-cms-project-id',
-  credentialsPath: '/path/to/credentials.json',
-});
-
-await server.run();
-```
-
-## MCP Resources
-
-### Available Resources
-
-- `cms://documents` - List all CMS documents
-- `cms://collections` - List all collections
-- `cms://schemas` - Get all collection schemas
-- `cms://collection/{name}` - Get documents in a specific collection
-- `cms://doc/{collection}/{slug}` - Get a specific document
-
-### Example
-
-```typescript
-// In an MCP client
-const docs = await client.readResource('cms://documents');
-const pages = await client.readResource('cms://collection/Pages');
-const homePage = await client.readResource('cms://doc/Pages/home');
-```
-
-## MCP Tools
-
-### create_document
-
-Create a new CMS document.
-
-```typescript
-await client.callTool('create_document', {
-  collection: 'Pages',
-  slug: 'about-us',
-  fields: {
-    title: 'About Us',
-    content: '...',
-  },
-  mode: 'draft',
+export default defineConfig({
+  plugins: [
+    cmsPlugin({
+      id: 'my-project',
+      firebaseConfig: {
+        projectId: 'your-firebase-project',
+        // ... other Firebase config
+      },
+    }),
+    mcpPlugin(), // Add the MCP plugin
+  ],
 });
 ```
 
-### update_document
-
-Update an existing document.
-
-```typescript
-await client.callTool('update_document', {
-  collection: 'Pages',
-  slug: 'about-us',
-  fields: {
-    title: 'About Our Company',
-  },
-});
-```
-
-### delete_document
-
-Delete a document.
-
-```typescript
-await client.callTool('delete_document', {
-  collection: 'Pages',
-  slug: 'old-page',
-});
-```
-
-### query_documents
-
-Query documents in a collection.
-
-```typescript
-await client.callTool('query_documents', {
-  collection: 'BlogPosts',
-  mode: 'published',
-  limit: 10,
-});
-```
-
-### publish_document
-
-Publish a draft document.
-
-```typescript
-await client.callTool('publish_document', {
-  collection: 'Pages',
-  slug: 'new-feature',
-});
-```
-
-### get_schema
-
-Get the schema for a collection.
-
-```typescript
-await client.callTool('get_schema', {
-  collection: 'Pages',
-});
-```
-
-## MCP Prompts
-
-### create_page
-
-Template for creating a new page with common modules.
-
-```typescript
-await client.getPrompt('create_page', {
-  title: 'Our Services',
-  slug: 'services',
-});
-```
-
-### create_blog_post
-
-Template for creating a blog post.
-
-```typescript
-await client.getPrompt('create_blog_post', {
-  title: 'New Product Launch',
-  author: 'John Doe',
-});
-```
-
-### optimize_seo
-
-Generate SEO optimization suggestions.
-
-```typescript
-await client.getPrompt('optimize_seo', {
-  collection: 'Pages',
-  slug: 'home',
-});
-```
-
-## Environment Variables
-
-- `FIREBASE_PROJECT_ID` - Firebase project ID (required)
-- `CMS_PROJECT_ID` - Root CMS project ID (default: "default")
-- `GOOGLE_APPLICATION_CREDENTIALS` - Path to Firebase credentials JSON
-- `FIRESTORE_DATABASE_ID` - Firestore database ID (optional)
+That's it! The MCP endpoint will be available at `/mcp/message` on your Root.js server.
 
 ## Configuration
 
-### MCP Client Configuration
+### Plugin Options
 
-To use this server with Claude Desktop or other MCP clients, add to your MCP settings:
+```typescript
+mcpPlugin({
+  path: '/mcp', // Optional: customize the endpoint path (default: '/mcp')
+})
+```
+
+## MCP Capabilities
+
+The plugin exposes three types of MCP capabilities:
+
+### Resources
+
+Browse CMS data through the MCP protocol:
+
+- `rootcms://documents/{collection}?mode=draft|published` - Browse documents in a collection
+- `rootcms://collections` - List all collections
+- `rootcms://schemas/{collection}` - Get collection schema
+
+### Tools
+
+Perform CMS operations:
+
+- `get_document` - Retrieve a document
+- `list_documents` - List documents in a collection
+- `save_draft` - Create or update a draft document
+- `publish_document` - Publish a draft to production
+- `delete_document` - Remove a document
+- `list_collections` - Get all collections
+- `get_schema` - Retrieve collection schema
+
+### Prompts
+
+Pre-configured templates for common tasks:
+
+- `create-page` - Guide for creating new pages
+- `review-changes` - Template for reviewing content changes
+
+## Authentication
+
+**Important**: The MCP endpoint requires authentication. Only logged-in CMS users can access the endpoint. This is enforced automatically by the plugin using the same authentication system as the CMS.
+
+When accessing the endpoint, you must:
+1. Be authenticated via the CMS login system
+2. Have a valid session cookie
+3. Be authorized to access the CMS (via the CMS plugin's `isUserAuthorized` callback if configured)
+
+## Using with AI Assistants
+
+The MCP endpoint is designed to be accessed by authenticated users through their browsers or authenticated API clients. Because it requires CMS authentication, direct integration with standalone MCP clients (like Claude Desktop) may require additional proxy setup to handle authentication.
+
+For local development with authenticated access:
+
+```typescript
+// Example: Make authenticated requests to the MCP endpoint
+const response = await fetch('http://localhost:3000/mcp/message', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    // Include your session cookie here
+  },
+  credentials: 'include',
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'tools/call',
+    params: {
+      name: 'list_documents',
+      arguments: {collection: 'Pages', mode: 'draft'},
+    },
+  }),
+});
+```
+
+## API Reference
+
+### POST /mcp/message
+
+The main MCP endpoint accepts JSON-RPC 2.0 requests:
 
 ```json
 {
-  "mcpServers": {
-    "root-cms": {
-      "command": "npx",
-      "args": ["@blinkk/root-cms-mcp"],
-      "env": {
-        "FIREBASE_PROJECT_ID": "your-project-id",
-        "CMS_PROJECT_ID": "your-cms-id",
-        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/credentials.json"
-      }
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "list_documents",
+    "arguments": {
+      "collection": "BlogPosts",
+      "mode": "draft",
+      "limit": 10
     }
   }
 }
 ```
+
+Response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Found 5 documents..."
+      }
+    ]
+  }
+}
+```
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build the package
+pnpm run build
+
+# Watch mode for development
+pnpm run dev
+```
+
+## How It Works
+
+1. The plugin integrates with your existing CMS plugin to access Firebase/Firestore
+2. It adds an HTTP endpoint (`/mcp/message`) to your Root.js server
+3. The endpoint implements the Model Context Protocol (JSON-RPC 2.0)
+4. AI assistants can send requests to this endpoint to interact with your CMS
+
+## Architecture
+
+- **SimpleCMSClient**: Lightweight Firestore client that works directly with the database
+- **MCP Server**: Handles MCP protocol communication
+- **Resources/Tools/Prompts**: Implement specific CMS capabilities
+- **Plugin Integration**: Seamlessly connects with Root.js and CMS plugin
 
 ## Use Cases
 
@@ -229,10 +210,16 @@ Use AI agents to:
 - Automate testing with CMS data
 - Generate documentation from schemas
 
-## API Reference
+## Requirements
 
-See [TypeScript definitions](./src/types.ts) for complete API documentation.
+- Root.js project with `@blinkk/root-cms` configured
+- Firebase/Firestore backend
+- Node.js 18 or higher
 
 ## License
 
 MIT
+
+## Contributing
+
+Contributions are welcome! Please open an issue or PR on the [Root.js repository](https://github.com/blinkk/rootjs).
