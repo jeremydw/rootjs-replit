@@ -55,21 +55,31 @@ Your MCP endpoint will be available at `http://localhost:3000/mcp/message` (or y
 
 ## Using with Replit Agent
 
-### Method 1: Direct Integration (Authenticated)
+### Understanding Authentication
 
-If your Root.js app is running on Replit, the Replit Agent can interact with your MCP endpoint directly. However, you'll need to authenticate first since the endpoint requires CMS login.
+The MCP endpoint at `/mcp/message` **requires CMS authentication**. Replit Agent executes requests from the workspace environment and **does not automatically inherit your browser cookies**. This means you need to explicitly provide authentication credentials with each request.
 
-**Steps:**
-1. Start your Root.js dev server
-2. Log into your CMS at `/cms/login`
-3. Ask Replit Agent to make requests to your MCP endpoint
+### Method 1: Using Session Cookies (Development)
 
-**Example prompt for Replit Agent:**
+**Step 1: Get Your Session Cookie**
+
+1. Start your Root.js dev server (`pnpm run dev`)
+2. Log into your CMS at `http://localhost:3000/cms/login` in your browser
+3. Open browser DevTools (F12) → Application → Cookies
+4. Copy the value of the `root-session` cookie
+
+**Step 2: Use the Cookie with Replit Agent**
+
+Ask Replit Agent to make authenticated requests by including the cookie:
+
 ```
-I have an MCP server running at http://localhost:3000/mcp/message. 
-Can you list all the documents in my "BlogPosts" collection?
+I have an authenticated MCP server at http://localhost:3000/mcp/message.
 
-Use this JSON-RPC request:
+Please make a POST request with these headers:
+- Content-Type: application/json
+- Cookie: root-session=<paste-your-cookie-value-here>
+
+Body:
 {
   "jsonrpc": "2.0",
   "id": 1,
@@ -84,24 +94,66 @@ Use this JSON-RPC request:
 }
 ```
 
-### Method 2: MCP Server Configuration (Advanced)
+**Note:** Session cookies expire after 5 days. You'll need to re-login and get a fresh cookie when it expires.
 
-For standalone MCP server configuration, you can create a proxy that handles authentication:
+### Method 2: Browser-Based MCP Client (Easiest)
 
-```json
-{
-  "mcpServers": {
-    "root-cms": {
-      "url": "http://localhost:3000/mcp/message",
-      "headers": {
-        "Cookie": "your-session-cookie-here"
-      }
-    }
-  }
+Since the endpoint requires browser authentication, the easiest way to use it is through a browser-based MCP client or directly from your browser's dev console:
+
+```javascript
+// Run this in your browser's console (while logged into CMS)
+async function callMCP(method, params) {
+  const response = await fetch('http://localhost:3000/mcp/message', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    credentials: 'include', // Include cookies automatically
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method,
+      params
+    })
+  });
+  return response.json();
 }
+
+// Example: List documents
+const result = await callMCP('tools/call', {
+  name: 'list_documents',
+  arguments: {collection: 'BlogPosts', mode: 'draft'}
+});
+console.log(result);
 ```
 
-**Note:** This requires managing session cookies, which may expire. The direct integration method (Method 1) is recommended for development.
+### Method 3: Localhost Proxy (Advanced)
+
+Create a simple proxy that handles authentication:
+
+```typescript
+// proxy-server.ts
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+const SESSION_COOKIE = 'root-session=your-session-cookie-value';
+
+app.post('/mcp/*', async (req, res) => {
+  const response = await fetch('http://localhost:3000' + req.path, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Cookie': SESSION_COOKIE
+    },
+    body: JSON.stringify(req.body)
+  });
+  res.json(await response.json());
+});
+
+app.listen(3001, () => console.log('Proxy on :3001'));
+```
+
+Then ask Replit Agent to use `http://localhost:3001/mcp/message` instead.
 
 ## Available MCP Capabilities
 
@@ -281,10 +333,16 @@ Help me review and publish content:
 
 **Important:** The MCP endpoint requires CMS authentication. Only logged-in CMS users can access it.
 
-When using with Replit Agent:
-- You must be logged into the CMS (`/cms/login`) in your browser
-- The session cookie will be used for authentication
-- If you get a 401 error, log in to the CMS and try again
+**Critical for Replit Agent Users:**
+- Replit Agent **does not** automatically use your browser cookies
+- You **must** explicitly provide authentication with each request
+- Options: include session cookie in headers, use browser console, or create an auth proxy
+- See authentication methods above for practical solutions
+
+**Quick Test:** To verify your setup works, use the browser console method first (Method 2 above) before attempting to use with Replit Agent. This confirms:
+1. The endpoint is running
+2. Your CMS authentication is valid
+3. The MCP tools are working correctly
 
 ## Security Best Practices
 

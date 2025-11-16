@@ -210,11 +210,67 @@ Use AI agents to:
 - Automate testing with CMS data
 - Generate documentation from schemas
 
+## Documentation
+
+- **[Using with Replit Agent](./docs/REPLIT_AGENT.md)** - Complete guide for integrating with Replit's AI Agent and MCP clients
+- **[AI Integration Guide](./docs/INTEGRATION.md)** - Enhance Root CMS AI features with MCP tool-calling capabilities
+
 ## Requirements
 
 - Root.js project with `@blinkk/root-cms` configured
 - Firebase/Firestore backend
 - Node.js 18 or higher
+
+## Examples
+
+### Quick Start with Replit Agent
+
+```typescript
+// 1. Configure your root.config.ts
+import {defineConfig} from '@blinkk/root';
+import {cmsPlugin} from '@blinkk/root-cms';
+import {mcpPlugin} from '@blinkk/root-cms-mcp';
+
+export default defineConfig({
+  plugins: [
+    cmsPlugin({id: 'my-project', firebaseConfig: {...}}),
+    mcpPlugin(),
+  ],
+});
+
+// 2. Start your server
+// pnpm run dev
+
+// 3. Log into CMS and get your session cookie
+// Navigate to http://localhost:3000/cms/login
+// Open DevTools → Application → Cookies → copy 'root-session' value
+
+// 4. Use Replit Agent with authentication
+// Ask: "Make a POST request to http://localhost:3000/mcp/message
+//       with Cookie header: root-session=<your-cookie>
+//       and this JSON body: {jsonrpc:'2.0', id:1, method:'tools/call',
+//       params:{name:'list_documents', arguments:{collection:'BlogPosts'}}}"
+```
+
+**Note:** The endpoint requires authentication. See the [Replit Agent Guide](./docs/REPLIT_AGENT.md) for detailed authentication methods.
+
+### Enhancing Root CMS AI
+
+```typescript
+// Enable AI with MCP capabilities
+cmsPlugin({
+  // ... other config
+  experiments: {
+    ai: {
+      model: 'vertexai/gemini-2.5-flash',
+      systemPrompt: `You are a CMS assistant with access to MCP tools.
+      You can list documents, create drafts, publish content, and more.`
+    }
+  }
+})
+```
+
+See the [Integration Guide](./docs/INTEGRATION.md) for detailed examples.
 
 ## License
 
