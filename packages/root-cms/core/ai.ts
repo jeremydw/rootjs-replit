@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {vertexAI} from '@genkit-ai/vertexai';
 import {Timestamp} from 'firebase-admin/firestore';
-import {Genkit, genkit, MessageData} from 'genkit';
+import {Genkit, genkit, MessageData, z} from 'genkit';
 import {logger} from 'genkit/logging';
 import {
   ChatPrompt,
@@ -135,60 +135,65 @@ export class Chat {
   /** Builds MCP tools for the AI to interact with the CMS. */
   private buildMcpTools(): any[] {
     const cmsClient = this.cmsClient;
+    const ai = this.ai;
 
     return [
-      {
-        name: 'get_document',
-        description: 'Get a specific CMS document by collection and slug',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            collection: {type: 'string'},
-            slug: {type: 'string'},
-            mode: {type: 'string', enum: ['draft', 'published']},
-          },
-          required: ['collection', 'slug'],
+      ai.defineTool(
+        {
+          name: 'get_document',
+          description: 'Get a specific CMS document by collection and slug',
+          inputSchema: z.object({
+            collection: z.string().describe('The collection name'),
+            slug: z.string().describe('The document slug'),
+            mode: z
+              .enum(['draft', 'published'])
+              .optional()
+              .describe('Whether to get draft or published version'),
+          }),
+          outputSchema: z.any(),
         },
-        outputSchema: {type: 'object'},
-        async use(input: any) {
+        async (input) => {
           const {collection, slug, mode = 'draft'} = input;
           const doc = await cmsClient.getDoc(collection, slug, {mode});
           return doc || {error: 'Document not found'};
+        }
+      ),
+      ai.defineTool(
+        {
+          name: 'list_documents',
+          description: 'List all documents in a collection',
+          inputSchema: z.object({
+            collection: z.string().describe('The collection name'),
+            mode: z
+              .enum(['draft', 'published'])
+              .optional()
+              .describe('Whether to list drafts or published'),
+            limit: z
+              .number()
+              .optional()
+              .describe('Maximum number of documents to return'),
+          }),
+          outputSchema: z.any(),
         },
-      },
-      {
-        name: 'list_documents',
-        description: 'List all documents in a collection',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            collection: {type: 'string'},
-            mode: {type: 'string', enum: ['draft', 'published']},
-            limit: {type: 'number'},
-          },
-          required: ['collection'],
-        },
-        outputSchema: {type: 'object'},
-        async use(input: any) {
+        async (input) => {
           const {collection, mode = 'draft', limit = 50} = input;
           const docs = await cmsClient.listDocs(collection, {mode, limit});
           return docs;
+        }
+      ),
+      ai.defineTool(
+        {
+          name: 'save_draft',
+          description:
+            "Save or update a draft document (creates if it doesn't exist)",
+          inputSchema: z.object({
+            collection: z.string().describe('The collection name'),
+            slug: z.string().describe('The document slug'),
+            fields: z.any().describe('The document fields to save'),
+          }),
+          outputSchema: z.any(),
         },
-      },
-      {
-        name: 'save_draft',
-        description: 'Save or update a draft document (creates if it doesn\'t exist)',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            collection: {type: 'string'},
-            slug: {type: 'string'},
-            fields: {type: 'object'},
-          },
-          required: ['collection', 'slug', 'fields'],
-        },
-        outputSchema: {type: 'object'},
-        async use(input: any) {
+        async (input) => {
           const {collection, slug, fields} = input;
           const docId = `${collection}/${slug}`;
           await cmsClient.saveDraftData(docId, fields, {
@@ -196,59 +201,60 @@ export class Chat {
           });
           const doc = await cmsClient.getDoc(collection, slug, {mode: 'draft'});
           return doc;
+        }
+      ),
+      ai.defineTool(
+        {
+          name: 'publish_document',
+          description: 'Publish a draft document to production',
+          inputSchema: z.object({
+            collection: z.string().describe('The collection name'),
+            slug: z.string().describe('The document slug'),
+          }),
+          outputSchema: z.any(),
         },
-      },
-      {
-        name: 'publish_document',
-        description: 'Publish a draft document to production',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            collection: {type: 'string'},
-            slug: {type: 'string'},
-          },
-          required: ['collection', 'slug'],
-        },
-        outputSchema: {type: 'object'},
-        async use(input: any) {
+        async (input) => {
           const {collection, slug} = input;
           const docId = `${collection}/${slug}`;
           await cmsClient.publishDocs([docId], {
             publishedBy: 'ai-assistant',
           });
-          const doc = await cmsClient.getDoc(collection, slug, {mode: 'published'});
+          const doc = await cmsClient.getDoc(collection, slug, {
+            mode: 'published',
+          });
           return doc;
+        }
+      ),
+      ai.defineTool(
+        {
+          name: 'get_schema',
+          description: 'Get the schema definition for a collection',
+          inputSchema: z.object({
+            collection: z.string().describe('The collection name'),
+          }),
+          outputSchema: z.any(),
         },
-      },
-      {
-        name: 'get_schema',
-        description: 'Get the schema definition for a collection',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            collection: {type: 'string'},
-          },
-          required: ['collection'],
-        },
-        outputSchema: {type: 'object'},
-        async use(input: any) {
+        async (input) => {
           const {collection} = input;
-          // Get the first document to show an example of the structure
-          const docs = await cmsClient.listDocs(collection, {mode: 'draft', limit: 1});
+          const docs = await cmsClient.listDocs(collection, {
+            mode: 'draft',
+            limit: 1,
+          });
           if (docs && docs.docs && docs.docs.length > 0) {
             const sampleDoc = docs.docs[0];
             return {
               collection,
               sampleDocument: sampleDoc,
-              description: 'Schema inferred from a sample document in this collection',
+              description:
+                'Schema inferred from a sample document in this collection',
             };
           }
           return {
             collection,
             error: 'No documents found in collection to infer schema',
           };
-        },
-      },
+        }
+      ),
     ];
   }
 

@@ -99,7 +99,7 @@ The project is configured for autoscale deployment on Replit:
 - **Integrated MCP tools into Root CMS AI chat feature**
   - Added 5 MCP tools to AI chat: get_document, list_documents, save_draft, publish_document, get_schema
   - Tools enable AI to browse, create, update, and publish CMS content via natural language
-  - Tools use Genkit's function calling to invoke MCP operations
+  - Tools properly defined using Genkit's `ai.defineTool()` with Zod schemas
   - Updated system prompt to inform AI about available tools and capabilities
 - **Enhanced AI welcome screen** with MCP tools listing
   - Displays all available tools with descriptions when starting a new chat
