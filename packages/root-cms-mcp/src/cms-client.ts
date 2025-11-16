@@ -7,29 +7,36 @@ import type {Firestore} from 'firebase-admin/firestore';
 export class SimpleCMSClient {
   constructor(
     private db: Firestore,
-    private projectId: string
+    readonly projectId: string
   ) {}
 
   async getDoc(
-    collection: string,
+    collectionId: string,
     slug: string,
-    mode: 'draft' | 'published' = 'draft'
+    options: {mode?: 'draft' | 'published'} = {}
   ) {
+    const mode = options.mode || 'draft';
     const modeCollection = mode === 'draft' ? 'Drafts' : 'Published';
     const encodedSlug = slug.replaceAll('/', '--');
-    const dbPath = `Projects/${this.projectId}/Collections/${collection}/${modeCollection}/${encodedSlug}`;
+    const dbPath = `Projects/${this.projectId}/Collections/${collectionId}/${modeCollection}/${encodedSlug}`;
     
     const docRef = this.db.doc(dbPath);
     const doc = await docRef.get();
     
     if (doc.exists) {
-      return doc.data();
+      const data = doc.data();
+      // Return normalized document with metadata
+      return {
+        ...data,
+        slug: slug,
+        collection: collectionId,
+      };
     }
     return null;
   }
 
   async listDocs(
-    collection: string,
+    collectionId: string,
     options: {mode?: 'draft' | 'published'; limit?: number; offset?: number} = {}
   ) {
     const mode = options.mode || 'draft';
@@ -37,14 +44,24 @@ export class SimpleCMSClient {
     const offset = options.offset || 0;
     const modeCollection = mode === 'draft' ? 'Drafts' : 'Published';
     
-    const dbPath = `Projects/${this.projectId}/Collections/${collection}/${modeCollection}`;
+    const dbPath = `Projects/${this.projectId}/Collections/${collectionId}/${modeCollection}`;
     const snapshot = await this.db
       .collection(dbPath)
       .limit(limit)
       .offset(offset)
       .get();
     
-    return snapshot.docs.map(doc => doc.data());
+    // Return normalized documents with metadata
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      const encodedSlug = doc.id;
+      const slug = encodedSlug.replaceAll('--', '/');
+      return {
+        ...data,
+        slug: slug,
+        collection: collectionId,
+      };
+    });
   }
 
   async saveDraft(

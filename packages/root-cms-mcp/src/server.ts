@@ -21,16 +21,18 @@ export class RootCMSMCPServer {
   private context: MCPServerContext;
 
   constructor(config: MCPServerConfig) {
-    // Initialize Firebase (as default app so getFirestore works)
+    // Initialize Firebase with project ID
     const firebaseApp = config.credentialsPath
       ? initializeApp({
+          projectId: config.projectId,
           credential: cert(config.credentialsPath),
         })
-      : initializeApp();
+      : initializeApp({
+          projectId: config.projectId,
+        });
 
-    // Get Firestore instance
-    // Note: For custom database IDs, use Firestore settings after initialization
-    const db = getFirestore();
+    // Get Firestore instance (supports custom database ID in config)
+    const db = config.databaseId ? getFirestore(config.databaseId) : getFirestore();
 
     // Initialize CMS client
     const cmsClient = new SimpleCMSClient(db, config.cmsProjectId);
