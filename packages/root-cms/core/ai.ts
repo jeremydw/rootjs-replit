@@ -155,7 +155,7 @@ export class Chat {
         async (input) => {
           const {collection, slug, mode = 'draft'} = input;
           const doc = await cmsClient.getDoc(collection, slug, {mode});
-          return doc || {error: 'Document not found'};
+          return JSON.parse(JSON.stringify(doc || {error: 'Document not found'}));
         }
       ),
       ai.defineTool(
@@ -178,7 +178,7 @@ export class Chat {
         async (input) => {
           const {collection, mode = 'draft', limit = 50} = input;
           const docs = await cmsClient.listDocs(collection, {mode, limit});
-          return docs;
+          return JSON.parse(JSON.stringify(docs));
         }
       ),
       ai.defineTool(
@@ -200,7 +200,7 @@ export class Chat {
             modifiedBy: 'ai-assistant',
           });
           const doc = await cmsClient.getDoc(collection, slug, {mode: 'draft'});
-          return doc;
+          return JSON.parse(JSON.stringify(doc));
         }
       ),
       ai.defineTool(
@@ -222,7 +222,7 @@ export class Chat {
           const doc = await cmsClient.getDoc(collection, slug, {
             mode: 'published',
           });
-          return doc;
+          return JSON.parse(JSON.stringify(doc));
         }
       ),
       ai.defineTool(
@@ -242,12 +242,12 @@ export class Chat {
           });
           if (docs && docs.docs && docs.docs.length > 0) {
             const sampleDoc = docs.docs[0];
-            return {
+            return JSON.parse(JSON.stringify({
               collection,
               sampleDocument: sampleDoc,
               description:
                 'Schema inferred from a sample document in this collection',
-            };
+            }));
           }
           return {
             collection,
