@@ -5,15 +5,12 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "root-cms-mcp": "./dist/bin.js"
-  },
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch",
-    "start": "node ./dist/bin.js"
+    "dev": "tsup --watch"
   },
   "dependencies": {
+    "@blinkk/root": "workspace:*",
     "@blinkk/root-cms": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "firebase-admin": "^13.5.0"

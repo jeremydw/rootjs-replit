@@ -1,6 +1,7 @@
-export {RootCMSMCPServer} from './server.js';
+export {mcpPlugin} from './plugin.js';
+export type {MCPPluginOptions, MCPPlugin} from './plugin.js';
+export {SimpleCMSClient} from './cms-client.js';
 export type {
-  MCPServerConfig,
   MCPServerContext,
   DocMode,
   DocumentIdentifier,

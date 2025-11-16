@@ -590,6 +590,9 @@ importers:
 
   packages/root-cms-mcp:
     dependencies:
+      '@blinkk/root':
+        specifier: workspace:*
+        version: link:../root
       '@blinkk/root-cms':
         specifier: workspace:*
         version: link:../root-cms
