@@ -1,6 +1,6 @@
-import {RootCMSClient, Doc} from '@blinkk/root-cms/client';
-import {FirebaseApp} from 'firebase-admin/app';
-import {Firestore} from 'firebase-admin/firestore';
+import type {App} from 'firebase-admin/app';
+import type {Firestore} from 'firebase-admin/firestore';
+import {SimpleCMSClient} from './cms-client.js';
 
 export interface MCPServerConfig {
   /**
@@ -26,9 +26,9 @@ export interface MCPServerConfig {
 
 export interface MCPServerContext {
   config: MCPServerConfig;
-  firebaseApp: FirebaseApp;
+  firebaseApp: App;
   db: Firestore;
-  cmsClient: RootCMSClient;
+  cmsClient: SimpleCMSClient;
 }
 
 export type DocMode = 'draft' | 'published';
@@ -69,4 +69,4 @@ export interface GetSchemaParams {
   collection: string;
 }
 
-export type CMSDocument = Doc;
+export type CMSDocument = any;

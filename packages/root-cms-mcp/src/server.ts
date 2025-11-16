@@ -10,7 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import {initializeApp, cert} from 'firebase-admin/app';
 import {getFirestore} from 'firebase-admin/firestore';
-import {RootCMSClient} from '@blinkk/root-cms/client';
+import {SimpleCMSClient} from './cms-client.js';
 import {MCPServerConfig, MCPServerContext} from './types.js';
 import {registerResources} from './resources/index.js';
 import {registerTools} from './tools/index.js';
@@ -21,20 +21,19 @@ export class RootCMSMCPServer {
   private context: MCPServerContext;
 
   constructor(config: MCPServerConfig) {
-    // Initialize Firebase
+    // Initialize Firebase (as default app so getFirestore works)
     const firebaseApp = config.credentialsPath
       ? initializeApp({
           credential: cert(config.credentialsPath),
-          projectId: config.projectId,
         })
-      : initializeApp({projectId: config.projectId});
+      : initializeApp();
 
-    const db = getFirestore(firebaseApp, config.databaseId);
+    // Get Firestore instance
+    // Note: For custom database IDs, use Firestore settings after initialization
+    const db = getFirestore();
 
     // Initialize CMS client
-    const cmsClient = new RootCMSClient(db, {
-      id: config.cmsProjectId,
-    });
+    const cmsClient = new SimpleCMSClient(db, config.cmsProjectId);
 
     this.context = {
       config,
