@@ -82,14 +82,28 @@ export class SimpleCMSClient {
       const existingData = existing.data();
       const existingSys = existingData?.sys || {};
       
+      const updatedSys: any = {
+        modifiedAt: now,
+        modifiedBy: options.modifiedBy || 'mcp-server',
+        locales: options.locales || existingSys.locales || [],
+      };
+      
+      if (existingSys.createdAt) {
+        updatedSys.createdAt = existingSys.createdAt;
+      }
+      if (existingSys.createdBy) {
+        updatedSys.createdBy = existingSys.createdBy;
+      }
+      if (existingSys.publishedAt) {
+        updatedSys.publishedAt = existingSys.publishedAt;
+      }
+      if (existingSys.publishedBy) {
+        updatedSys.publishedBy = existingSys.publishedBy;
+      }
+      
       await docRef.update({
         fields,
-        sys: {
-          ...existingSys,
-          modifiedAt: now,
-          modifiedBy: options.modifiedBy || 'mcp-server',
-          locales: options.locales || existingSys.locales || [],
-        },
+        sys: updatedSys,
       });
     } else {
       await docRef.set({
