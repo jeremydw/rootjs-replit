@@ -76,25 +76,33 @@ export class SimpleCMSClient {
     const docRef = this.db.doc(dbPath);
     
     const now = Timestamp.now();
-    const data = {
-      fields,
-      sys: {
-        modifiedAt: now,
-        modifiedBy: options.modifiedBy || 'mcp-server',
-        locales: options.locales || [],
-      },
-    };
-
     const existing = await docRef.get();
+    
     if (existing.exists) {
-      await docRef.update(data);
+      const existingData = existing.data();
+      const existingSys = existingData?.sys || {};
+      
+      await docRef.update({
+        fields,
+        sys: {
+          ...existingSys,
+          modifiedAt: now,
+          modifiedBy: options.modifiedBy || 'mcp-server',
+          locales: options.locales || existingSys.locales || [],
+        },
+      });
     } else {
       await docRef.set({
-        ...data,
+        id: `${collection}/${slug}`,
+        collection,
+        slug,
+        fields,
         sys: {
-          ...data.sys,
           createdAt: now,
           createdBy: options.modifiedBy || 'mcp-server',
+          modifiedAt: now,
+          modifiedBy: options.modifiedBy || 'mcp-server',
+          locales: options.locales || [],
         },
       });
     }

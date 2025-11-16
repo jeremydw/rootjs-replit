@@ -95,6 +95,21 @@ The project is configured for autoscale deployment on Replit:
 
 ## Recent Changes
 
+### 2025-11-16 (Root AI Integration with MCP Tools)
+- **Integrated MCP tools into Root CMS AI chat feature**
+  - Added 5 MCP tools to AI chat: get_document, list_documents, save_draft, publish_document, get_schema
+  - Tools enable AI to browse, create, update, and publish CMS content via natural language
+  - Tools use Genkit's function calling to invoke MCP operations
+  - Updated system prompt to inform AI about available tools and capabilities
+- **Enhanced AI welcome screen** with MCP tools listing
+  - Displays all available tools with descriptions when starting a new chat
+  - Styled interface shows tool names in monospace font with descriptions
+  - Helps users understand AI capabilities before starting conversation
+- **Fixed Firestore timestamp handling** in SimpleCMSClient
+  - Changed from `Date.now()` to `Timestamp.now()` for all sys fields
+  - Ensures proper Firestore timestamp format for createdAt, modifiedAt, publishedAt
+  - Fixes timestamp compatibility issues with Root CMS
+
 ### 2025-11-16 (MCP Plugin - Documentation)
 - Created **comprehensive documentation** for Root CMS MCP plugin
 - **REPLIT_AGENT.md**: Complete guide for using MCP with Replit Agent and other MCP clients
