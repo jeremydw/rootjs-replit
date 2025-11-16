@@ -8,6 +8,83 @@ export function registerTools(context: MCPServerContext) {
       return {
         tools: [
           {
+            name: 'get_document',
+            description: 'Get a specific CMS document by collection and slug',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                collection: {
+                  type: 'string',
+                  description: 'Collection name (e.g., "Pages", "BlogPosts")',
+                },
+                slug: {
+                  type: 'string',
+                  description: 'Document slug (unique identifier)',
+                },
+                mode: {
+                  type: 'string',
+                  enum: ['draft', 'published'],
+                  description: 'Document mode (default: draft)',
+                },
+              },
+              required: ['collection', 'slug'],
+            },
+          },
+          {
+            name: 'list_documents',
+            description: 'List all documents in a collection',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                collection: {
+                  type: 'string',
+                  description: 'Collection name',
+                },
+                mode: {
+                  type: 'string',
+                  enum: ['draft', 'published'],
+                  description: 'Document mode (default: draft)',
+                },
+                limit: {
+                  type: 'number',
+                  description: 'Maximum number of documents to return (default: 50)',
+                },
+                offset: {
+                  type: 'number',
+                  description: 'Number of documents to skip (default: 0)',
+                },
+              },
+              required: ['collection'],
+            },
+          },
+          {
+            name: 'save_draft',
+            description: 'Save or update a draft document (creates if it doesn\'t exist)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                collection: {
+                  type: 'string',
+                  description: 'Collection name',
+                },
+                slug: {
+                  type: 'string',
+                  description: 'Document slug',
+                },
+                fields: {
+                  type: 'object',
+                  description: 'Document field values',
+                },
+                locales: {
+                  type: 'array',
+                  items: {type: 'string'},
+                  description: 'Enabled locales for this document',
+                },
+              },
+              required: ['collection', 'slug', 'fields'],
+            },
+          },
+          {
             name: 'create_document',
             description: 'Create a new CMS document',
             inputSchema: {
@@ -118,6 +195,15 @@ export function registerTools(context: MCPServerContext) {
     async call(name: string, args: any) {
       try {
         switch (name) {
+          case 'get_document':
+            return await getDocument(cmsClient, args);
+
+          case 'list_documents':
+            return await listDocuments(cmsClient, args);
+
+          case 'save_draft':
+            return await saveDraft(cmsClient, args);
+
           case 'create_document':
             return await createDocument(cmsClient, args as CreateDocumentParams);
 
@@ -151,6 +237,84 @@ export function registerTools(context: MCPServerContext) {
         };
       }
     },
+  };
+}
+
+async function getDocument(cmsClient: any, params: {collection: string; slug: string; mode?: 'draft' | 'published'}) {
+  const {collection, slug, mode = 'draft'} = params;
+
+  const doc = await cmsClient.getDoc(collection, slug, {mode});
+
+  if (!doc) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Document not found: ${collection}/${slug} (mode: ${mode})`,
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Document: ${collection}/${slug}`,
+      },
+      {
+        type: 'text',
+        text: JSON.stringify(doc, null, 2),
+      },
+    ],
+  };
+}
+
+async function listDocuments(cmsClient: any, params: {collection: string; mode?: 'draft' | 'published'; limit?: number; offset?: number}) {
+  const {collection, mode = 'draft', limit = 50, offset = 0} = params;
+
+  const docs = await cmsClient.listDocs(collection, {
+    mode,
+    limit,
+    offset,
+  });
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Found ${docs.length} documents in ${collection} (mode: ${mode})`,
+      },
+      {
+        type: 'text',
+        text: JSON.stringify(docs.map((d: any) => ({slug: d.slug, ...d.fields})), null, 2),
+      },
+    ],
+  };
+}
+
+async function saveDraft(cmsClient: any, params: {collection: string; slug: string; fields: Record<string, any>; locales?: string[]}) {
+  const {collection, slug, fields, locales} = params;
+
+  await cmsClient.saveDraft(collection, slug, fields, {
+    locales,
+    modifiedBy: 'mcp-server',
+  });
+
+  const doc = await cmsClient.getDoc(collection, slug, {mode: 'draft'});
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Successfully saved draft: ${collection}/${slug}`,
+      },
+      {
+        type: 'text',
+        text: JSON.stringify(doc, null, 2),
+      },
+    ],
   };
 }
 
