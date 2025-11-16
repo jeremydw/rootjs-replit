@@ -6,6 +6,10 @@ const rootDir = new URL('.', import.meta.url).pathname;
 
 export default defineConfig({
   vite: {
+    server: {
+      host: '0.0.0.0',
+      allowedHosts: true,
+    },
     resolve: {
       alias: {
         '@': path.resolve(rootDir),
@@ -14,7 +18,7 @@ export default defineConfig({
     css: {
       preprocessorOptions: {
         scss: {
-          includePaths: [path.resolve(rootDir, './styles')],
+          loadPaths: [path.resolve(rootDir, './styles')],
         },
       },
     },
