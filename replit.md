@@ -79,6 +79,7 @@ To run different examples:
 ### Key Packages
 - **@blinkk/root** - Core framework for rendering, routing, and SSR
 - **@blinkk/root-cms** - CMS plugin with Firebase/Firestore integration
+- **@blinkk/root-cms-mcp** - Model Context Protocol server for Root CMS (NEW)
 - **@blinkk/create-root** - CLI for creating new Root.js projects
 - **@blinkk/rds** - Design system components
 
@@ -88,7 +89,16 @@ The project is configured for autoscale deployment on Replit:
 - **Build:** Builds the starter example application
 - **Run:** Starts the production server on port 5000
 
-## Recent Changes (2024-11-16)
+## Recent Changes
+
+### 2025-11-16 (MCP Server)
+- Created **@blinkk/root-cms-mcp** package with complete MCP server implementation
+- Implemented SimpleCMSClient for standalone Firestore operations (bypasses RootCMSClient)
+- Added MCP resources (documents, collections, schemas), tools (CRUD operations), and prompts
+- Package built successfully and ready for integration with AI/automation tools
+- Uses minimal dependencies: @modelcontextprotocol/sdk and firebase-admin
+
+### 2024-11-16 (Initial Setup)
 - Installed pnpm 8.9.0 and all project dependencies
 - Built all packages using turbo
 - Configured examples/starter for Replit environment:
