@@ -91,7 +91,22 @@ The project is configured for autoscale deployment on Replit:
 
 ## Recent Changes
 
-### 2025-11-16 (MCP Plugin)
+### 2025-11-16 (MCP Plugin - Documentation)
+- Created **comprehensive documentation** for Root CMS MCP plugin
+- **REPLIT_AGENT.md**: Complete guide for using MCP with Replit Agent and other MCP clients
+  - Three working authentication methods (session cookies, browser console, proxy)
+  - Detailed JSON-RPC examples for all MCP capabilities
+  - Use cases: content generation, migration, batch operations, reviews
+  - Troubleshooting guide and security best practices
+- **INTEGRATION.md**: Guide for enhancing Root CMS AI with MCP tool-calling
+  - Integration patterns for Vertex AI/Genkit
+  - Custom AI modes leveraging MCP capabilities
+  - Examples: sequential workflows, parallel operations, error handling
+  - Security considerations and testing strategies
+- **Updated README.md** with quick-start examples and documentation links
+- All documented workflows tested and verified as functional
+
+### 2025-11-16 (MCP Plugin - Implementation)
 - Created **@blinkk/root-cms-mcp** package as a Root.js plugin (not standalone server)
 - Plugin integrates with existing CMS plugin to access Firebase/Firestore
 - Implemented SimpleCMSClient for direct Firestore operations
