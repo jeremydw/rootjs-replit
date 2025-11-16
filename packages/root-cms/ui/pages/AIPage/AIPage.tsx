@@ -164,8 +164,21 @@ export function AIPage() {
             <ChatWindow chat={chat}>
               <p>
                 Chat with me about your website. Ask questions about the content
-                and I can tell you about it.
+                and I can help you manage it.
               </p>
+              <div className="AIPage__tools">
+                <h4>Available Tools:</h4>
+                <ul>
+                  <li><strong>get_document</strong> - Retrieve a specific document by collection and slug</li>
+                  <li><strong>list_documents</strong> - List all documents in a collection</li>
+                  <li><strong>save_draft</strong> - Create or update a draft document</li>
+                  <li><strong>publish_document</strong> - Publish a draft document to production</li>
+                  <li><strong>get_schema</strong> - Get the schema definition for a collection</li>
+                </ul>
+                <p style="margin-top: 12px; font-size: 13px; opacity: 0.8;">
+                  I can use these tools to browse, create, update, and publish your CMS content. Just ask me in natural language!
+                </p>
+              </div>
             </ChatWindow>
             <ChatBar chat={chat} />
           </>
