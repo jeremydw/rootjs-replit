@@ -35,6 +35,9 @@ importers:
       '@blinkk/root-cms':
         specifier: workspace:*
         version: link:../packages/root-cms
+      '@blinkk/root-cms-mcp':
+        specifier: workspace:*
+        version: link:../packages/root-cms-mcp
       '@tabler/icons-preact':
         specifier: 2.39.0
         version: 2.39.0(preact@10.27.1)

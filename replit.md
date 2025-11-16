@@ -18,12 +18,14 @@ This monorepo uses pnpm workspaces and includes:
 - `apps/` - Additional applications
 
 ## Current Setup
-The Replit environment is running the **starter example** application, which demonstrates a basic Root.js application without CMS functionality.
+The Replit environment is running the **docs package** with full CMS and MCP plugin functionality.
 
 ### Running Application
 - **Port:** 5000
-- **Example:** examples/starter
-- **Workflow:** starter-dev-server
+- **Package:** docs (Root.js documentation site)
+- **Workflow:** cms-dev-server
+- **CMS:** Available at http://localhost:5000/cms/
+- **MCP Endpoint:** Available at http://localhost:5000/mcp/message
 
 ## Development
 
@@ -42,28 +44,30 @@ The Replit environment is running the **starter example** application, which dem
 pnpm install              # Install dependencies
 pnpm run build            # Build all packages
 pnpm run test             # Run tests
+pnpm cms:dev              # Start CMS + docs dev server (current workflow)
 
-# In examples/starter:
+# In docs/:
 pnpm run dev              # Start development server
 pnpm run build            # Build production bundle
-pnpm run start            # Start production server
-pnpm run preview          # Preview production build
+pnpm run types            # Generate CMS types
 ```
 
-### Working with Other Examples
-To run different examples:
-1. Update the workflow command to point to a different example folder
-2. Ensure the example's root.config.ts has proper Vite server configuration:
-   ```typescript
-   vite: {
-     server: {
-       host: '0.0.0.0',
-       allowedHosts: true,
-     }
-   }
-   ```
+### CMS + MCP Features
+The current setup includes:
+- **Full CMS functionality** with Firebase/Firestore backend
+- **MCP Plugin** integrated and accessible at `/mcp/message`
+- **AI Features** enabled (experimental)
+- **Design System** accessible via CMS sidebar
 
-**Note:** The `docs` example requires Firebase configuration and won't work without proper credentials.
+To access the CMS:
+1. Navigate to http://localhost:5000/cms/
+2. Log in with your Firebase credentials
+3. The MCP endpoint is available for AI integrations (requires authentication)
+
+**Important Notes:**
+- The docs package uses Firebase auth configured for rootjs.dev domain. You may need to add your Replit domain to the Firebase authorized domains in the Firebase Console, or update the firebaseConfig in `docs/root.config.ts` to use a test project.
+- The MCP endpoint requires CMS authentication. See the [MCP documentation](./packages/root-cms-mcp/README.md) for usage details.
+- The MCP plugin is successfully initialized and accessible at `/mcp/message` once authenticated.
 
 ## Architecture
 
